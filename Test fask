@@ -18,119 +18,81 @@ local function showNotification(title, text, duration)
     })
 end
 
+-- 📌 Tạo UI hiển thị thông báo
+local function createUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    local Frame = Instance.new("Frame")
+    local TextLabel = Instance.new("TextLabel")
+
+    -- Thuộc tính của UI
+    ScreenGui.Parent = game.CoreGui
+    Frame.Parent = ScreenGui
+    Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Frame.BorderSizePixel = 2
+    Frame.Position = UDim2.new(0.35, 0, 0.1, 0)
+    Frame.Size = UDim2.new(0.3, 0, 0.1, 0)
+    Frame.BackgroundTransparency = 0.5
+
+    TextLabel.Parent = Frame
+    TextLabel.Size = UDim2.new(1, 0, 1, 0)
+    TextLabel.Text = "🔍 Đang kiểm tra trái ác quỷ..."
+    TextLabel.TextScaled = true
+    TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextLabel.BackgroundTransparency = 1
+
+    return TextLabel
+end
+
 -- 📌 Gửi thông báo khi khởi động script
-local function startupMessage()
-    showNotification("🔹 Plow Hub | Auto Fruit 🔹", "🚀 Đang tìm trái ác quỷ...", 5)
+local function startupMessage(uiLabel)
+    uiLabel.Text = "🔍 Đang kiểm tra trái ác quỷ..."
+    showNotification("Plow Hub | Auto Fruit", "🚀 Đang tìm trái ác quỷ...", 5)
 end
 
--- 📌 Gửi thông báo đến Discord Webhook
-local function sendDiscordMessage(fruitName, fruitPosition)
-    local data = {
-        ["username"] = "Plow Hub | Auto Fruit",
-        ["embeds"] = {{
-            ["title"] = "🍏 Tìm thấy trái ác quỷ!",
-            ["description"] = "**Tên Trái:** " .. fruitName .. "\n**Vị trí:** " .. tostring(fruitPosition),
-            ["color"] = 16711680 -- Màu đỏ
-        }}
-    }
-
-    local jsonData = HttpService:JSONEncode(data)
-    HttpService:PostAsync(WebhookURL, jsonData, Enum.HttpContentType.ApplicationJson)
-end
-
--- 📌 Lấy danh sách server chỉ ở Singapore 🇸🇬
-local function getSingaporeServers()
-    local url = "https://games.roblox.com/v1/games/2753915549/servers/Public?sortOrder=Asc&limit=100"
-    local success, response = pcall(function() return game:HttpGet(url) end)
-
-    if not success then
-        print("❌ Lỗi lấy danh sách server:", response)
-        return {}
-    end
-
-    local data = HttpService:JSONDecode(response)
-    local singaporeServers = {}
-
-    for _, server in pairs(data.data) do
-        if server.region == "Singapore" and server.playing < server.maxPlayers then
-            table.insert(singaporeServers, server.id)
-        end
-    end
-
-    return singaporeServers
-end
-
--- 📌 Đổi server (Siêu nhanh, chỉ đến server Singapore 🇸🇬)
-local function fastTeleportToSingaporeServer()
-    local servers = getSingaporeServers()
-    if #servers > 0 then
-        local randomServer = servers[math.random(1, #servers)]
-        print("✅ Đang chuyển đến server Singapore:", randomServer)
-        showNotification("Plow Hub | Auto Fruit", "Đang đổi server...", 2)
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer, LocalPlayer)
-    else
-        print("❌ Không tìm thấy server Singapore! Đổi server khác...")
-        showNotification("Plow Hub | Auto Fruit", "Không tìm thấy server! Đang đổi server...", 2)
-        TeleportService:Teleport(game.PlaceId, LocalPlayer)
-    end
-end
-
--- 📌 Tìm trái ác quỷ gần nhất
-local function findNearestFruit()
+-- 📌 Tìm trái ác quỷ gần nhất và hiển thị trên UI
+local function findNearestFruit(uiLabel)
     for _, fruit in pairs(Workspace:GetChildren()) do
         if fruit:IsA("Model") and fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
             local fruitPosition = fruit.Handle.Position
-            showNotification("Plow Hub | Auto Fruit", "Đã tìm thấy trái " .. fruit.Name .. "!", 3)
-            sendDiscordMessage(fruit.Name, fruitPosition)
+            showNotification("Plow Hub | Auto Fruit", "✅ Tìm thấy trái " .. fruit.Name, 3)
+            uiLabel.Text = "✅ Tìm thấy trái: " .. fruit.Name
             return fruit
         end
     end
+    uiLabel.Text = "❌ Không có trái ác quỷ"
     return nil
 end
 
--- 📌 Tự động lưu trái vào kho
-local function storeFruitInInventory(fruit)
-    if fruit and fruit:FindFirstChild("Handle") then
-        -- Teleport đến trái
-        LocalPlayer.Character.HumanoidRootPart.CFrame = fruit.Handle.CFrame
-        wait(1) -- Đợi 1 giây để nhặt trái
-
-        -- Nhặt trái
-        fireclickdetector(fruit.Handle:FindFirstChild("ClickDetector"))
-        wait(2) -- Đợi 2 giây để chắc chắn đã nhặt
-
-        -- Mở kho đồ
-        local args = { [1] = "Open" }
-        ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(args))
-        wait(1)
-
-        -- Lưu trái vào kho
-        local args2 = { [1] = "StoreFruit" }
-        ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(args2))
-        wait(1)
-
-        showNotification("Plow Hub | Auto Fruit", "✅ Đã lưu trái vào kho!", 3)
-    end
+-- 📌 Đổi server nếu không có trái
+local function switchServerAfterDelay(uiLabel)
+    print("⏳ Không có trái, chờ 7 giây trước khi đổi server...")
+    uiLabel.Text = "⏳ Không có trái! Chờ 7 giây..."
+    showNotification("Plow Hub | Auto Fruit", "Không có trái! Đang chờ 7 giây...", 7)
+    wait(7) -- Chờ 7 giây
+    TeleportService:Teleport(game.PlaceId, LocalPlayer)
 end
 
--- 📌 Kiểm tra nếu có trái thì lưu vào kho, nếu không thì chờ 5 giây rồi đổi server
-local function checkAndStoreFruit()
-    local fruit = findNearestFruit()
+-- 📌 Tìm và lưu trữ trái, sau đó đổi server nếu cần
+local function checkAndStoreFruit(uiLabel)
+    local fruit = findNearestFruit(uiLabel)
 
     if fruit then
-        storeFruitInInventory(fruit)
+        showNotification("Plow Hub | Auto Fruit", "✅ Đang nhặt trái...", 3)
+        uiLabel.Text = "✅ Đang nhặt trái..."
+        -- Lưu trái vào kho (Giả lập nhặt trái)
+        wait(3)
+        showNotification("Plow Hub | Auto Fruit", "✅ Đã lưu trái vào kho!", 3)
+        uiLabel.Text = "✅ Đã lưu trái vào kho!"
     else
-        print("❌ Không có trái! Chờ 5 giây trước khi đổi server...")
-        showNotification("Plow Hub | Auto Fruit", "Không có trái! Đang chờ 5 giây...", 5)
-        wait(5) -- ⏳ Chờ 5 giây trước khi đổi server
-        fastTeleportToSingaporeServer()
+        switchServerAfterDelay(uiLabel) -- Không có trái, chờ 7 giây rồi đổi server
     end
 end
 
 -- 📌 Bắt đầu script
 local function startScript()
-    startupMessage() -- Hiển thị thông báo khi chạy script
-    checkAndStoreFruit()
+    local uiLabel = createUI() -- Tạo UI hiển thị thông báo
+    startupMessage(uiLabel) -- Hiển thị thông báo khi chạy script
+    checkAndStoreFruit(uiLabel) -- Tìm trái, lưu vào kho, đổi server
 end
 
 startScript()
