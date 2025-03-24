@@ -11,42 +11,93 @@ local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
+-- Tạo UI thông báo
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local Frame = Instance.new("Frame", ScreenGui)
+local Title = Instance.new("TextLabel", Frame)
+local Logo = Instance.new("ImageLabel", Frame)
+local StatusLabel = Instance.new("TextLabel", Frame)
+
+ScreenGui.Name = "PlowHubUI"
+Frame.Size = UDim2.new(0, 300, 0, 80)
+Frame.Position = UDim2.new(0.5, -150, 0.05, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Frame.BorderSizePixel = 2
+Frame.BackgroundTransparency = 0.2
+
+-- Tên "Plow Hub"
+Title.Size = UDim2.new(1, -50, 0, 30)
+Title.Position = UDim2.new(0, 50, 0, 5)
+Title.Text = "Plow Hub"
+Title.TextScaled = true
+Title.TextColor3 = Color3.fromRGB(180, 100, 255) -- Màu tím nhạt
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.SourceSansBold
+
+-- Logo PG
+Logo.Size = UDim2.new(0, 40, 0, 40)
+Logo.Position = UDim2.new(0, 5, 0, 5)
+Logo.Image = "rbxassetid://INSERT_LOGO_ID_HERE" -- Thay bằng ID ảnh logo PG
+Logo.BackgroundTransparency = 1
+
+-- Trạng thái thông báo
+StatusLabel.Size = UDim2.new(1, 0, 0, 30)
+StatusLabel.Position = UDim2.new(0, 0, 0, 40)
+StatusLabel.TextScaled = true
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Đang khởi động..."
+StatusLabel.Font = Enum.Font.SourceSans
+
+-- Hiển thị trạng thái UI
+local function updateUI(text)
+    StatusLabel.Text = text
+end
+
+-- Tự động chọn Hải Tặc hoặc Hải Quân
+local function autoSelectTeam()
+    if ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("ChooseTeam") then
+        local chooseTeam = ReplicatedStorage.Remotes.ChooseTeam
+        local success = pcall(function() chooseTeam:InvokeServer("Pirates") end)
+        
+        if not success then
+            pcall(function() chooseTeam:InvokeServer("Marines") end)
+        end
+    end
+end
+
+autoSelectTeam() -- Chạy khi script khởi động
+
 -- Kiểm tra RemoteEvents và mở quyền truy cập
 if ReplicatedStorage:FindFirstChild("Remotes") then
     local event = ReplicatedStorage.Remotes:FindFirstChild("CheckStats")
     if event then
-        event:InvokeServer() -- Kích hoạt event để mở quyền truy cập
+        event:InvokeServer()
     end
-end
-
-local function showNotification(title, text, duration)
-    StarterGui:SetCore("SendNotification", {
-        Title = title;
-        Text = text;
-        Duration = duration;
-    })
 end
 
 local function findNearestFruit()
-    local closestFruit = nil
-    local closestDistance = math.huge
-
     for _, fruit in pairs(Workspace:GetChildren()) do
         if fruit:IsA("Model") and fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
-            local distance = (fruit.Handle.Position - HumanoidRootPart.Position).magnitude
-            if distance < closestDistance then
-                closestDistance = distance
-                closestFruit = fruit
-            end
+            return fruit
         end
     end
-
-    if closestFruit then
-        showNotification("Plow Hub | Auto Fruit", "Tìm thấy trái " .. closestFruit.Name, 3)
-        return closestFruit
-    end
-
     return nil
+end
+
+local function teleportToFruit(fruit)
+    if fruit and fruit:FindFirstChild("Handle") then
+        updateUI("Đang bay tới " .. fruit.Name .. "...")
+        
+        -- Cho phép bay xuyên vật thể
+        Character.HumanoidRootPart.CFrame = fruit.Handle.CFrame
+        wait(1)
+        
+        -- Kiểm tra nếu đã đến nơi
+        if (HumanoidRootPart.Position - fruit.Handle.Position).magnitude < 5 then
+            updateUI("Đã nhặt " .. fruit.Name .. "!")
+        end
+    end
 end
 
 local function storeFruitInInventory(fruit)
@@ -56,7 +107,7 @@ local function storeFruitInInventory(fruit)
             [2] = fruit.Handle.Position
         }
         
-        local maxAttempts = 5 -- Số lần thử tối đa
+        local maxAttempts = 5
         local attempt = 0
         local success = false
         
@@ -67,17 +118,17 @@ local function storeFruitInInventory(fruit)
 
             if successCall then
                 success = true
-                showNotification("Plow Hub | Auto Fruit", "Đã lưu " .. fruit.Name .. " vào kho!", 3)
+                updateUI("Đã lưu " .. fruit.Name .. " vào kho!")
                 break
             else
                 attempt = attempt + 1
                 warn("[StoreFruit]: Thử lần " .. attempt .. " thất bại! Đang thử lại...")
-                wait(1) -- Chờ 1 giây trước khi thử lại
+                wait(1)
             end
         end
         
         if not success then
-            showNotification("Plow Hub | Auto Fruit", "Không thể lưu trái sau nhiều lần thử!", 3)
+            updateUI("Không thể lưu trái!")
         end
 
         return success
@@ -86,26 +137,28 @@ local function storeFruitInInventory(fruit)
 end
 
 local function switchServer()
-    showNotification("Plow Hub | Auto Fruit", "Không có trái! Đang đổi server...", 3)
-    wait(7) -- Chờ 7 giây trước khi đổi server
+    for i = 7, 1, -1 do
+        updateUI("Không có trái! Đổi server sau " .. i .. " giây...")
+        wait(1)
+    end
     TeleportService:Teleport(game.PlaceId, LocalPlayer)
 end
 
-local function checkAndStoreFruit()
+local function checkAndPickFruit()
     local fruit = findNearestFruit()
 
     if fruit then
-        showNotification("Plow Hub | Auto Fruit", "Đang nhặt trái...", 3)
+        teleportToFruit(fruit)
         wait(1)
         local success = storeFruitInInventory(fruit)
         if success then
-            showNotification("Plow Hub | Auto Fruit", "Đã lưu trái vào kho!", 3)
+            updateUI("Đã lưu trái vào kho!")
         else
-            showNotification("Plow Hub | Auto Fruit", "Không thể lưu trái!", 3)
+            updateUI("Không thể lưu trái!")
         end
     else
         switchServer()
     end
 end
 
-checkAndStoreFruit()
+checkAndPickFruit()
