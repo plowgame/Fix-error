@@ -1,1 +1,111 @@
+repeat wait() until game:IsLoaded()
+wait(2) -- Đợi game load xong để tránh lỗi
 
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- Kiểm tra RemoteEvents và mở quyền truy cập
+if ReplicatedStorage:FindFirstChild("Remotes") then
+    local event = ReplicatedStorage.Remotes:FindFirstChild("CheckStats")
+    if event then
+        event:InvokeServer() -- Kích hoạt event để mở quyền truy cập
+    end
+end
+
+local function showNotification(title, text, duration)
+    StarterGui:SetCore("SendNotification", {
+        Title = title;
+        Text = text;
+        Duration = duration;
+    })
+end
+
+local function findNearestFruit()
+    local closestFruit = nil
+    local closestDistance = math.huge
+
+    for _, fruit in pairs(Workspace:GetChildren()) do
+        if fruit:IsA("Model") and fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
+            local distance = (fruit.Handle.Position - HumanoidRootPart.Position).magnitude
+            if distance < closestDistance then
+                closestDistance = distance
+                closestFruit = fruit
+            end
+        end
+    end
+
+    if closestFruit then
+        showNotification("Plow Hub | Auto Fruit", "Tìm thấy trái " .. closestFruit.Name, 3)
+        return closestFruit
+    end
+
+    return nil
+end
+
+local function storeFruitInInventory(fruit)
+    if fruit and fruit:FindFirstChild("Handle") then
+        local args = {
+            [1] = fruit.Name,
+            [2] = fruit.Handle.Position
+        }
+        
+        local maxAttempts = 5 -- Số lần thử tối đa
+        local attempt = 0
+        local success = false
+        
+        while attempt < maxAttempts do
+            local successCall, result = pcall(function()
+                return ReplicatedStorage.Remotes:FindFirstChild("StoreFruit"):InvokeServer(unpack(args))
+            end)
+
+            if successCall then
+                success = true
+                showNotification("Plow Hub | Auto Fruit", "Đã lưu " .. fruit.Name .. " vào kho!", 3)
+                break
+            else
+                attempt = attempt + 1
+                warn("[StoreFruit]: Thử lần " .. attempt .. " thất bại! Đang thử lại...")
+                wait(1) -- Chờ 1 giây trước khi thử lại
+            end
+        end
+        
+        if not success then
+            showNotification("Plow Hub | Auto Fruit", "Không thể lưu trái sau nhiều lần thử!", 3)
+        end
+
+        return success
+    end
+    return false
+end
+
+local function switchServer()
+    showNotification("Plow Hub | Auto Fruit", "Không có trái! Đang đổi server...", 3)
+    wait(7) -- Chờ 7 giây trước khi đổi server
+    TeleportService:Teleport(game.PlaceId, LocalPlayer)
+end
+
+local function checkAndStoreFruit()
+    local fruit = findNearestFruit()
+
+    if fruit then
+        showNotification("Plow Hub | Auto Fruit", "Đang nhặt trái...", 3)
+        wait(1)
+        local success = storeFruitInInventory(fruit)
+        if success then
+            showNotification("Plow Hub | Auto Fruit", "Đã lưu trái vào kho!", 3)
+        else
+            showNotification("Plow Hub | Auto Fruit", "Không thể lưu trái!", 3)
+        end
+    else
+        switchServer()
+    end
+end
+
+checkAndStoreFruit()
