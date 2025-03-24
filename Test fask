@@ -4,34 +4,44 @@ local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
+
+-- 📌 Hiển thị thông báo khi script bắt đầu
+local function showNotification()
+    StarterGui:SetCore("SendNotification", {
+        Title = "Plow Hub | Auto Fruit";
+        Text = "Đang khởi động...";
+        Duration = 5; -- Hiển thị trong 5 giây
+    })
+end
 
 -- 📌 Tự động chọn Hải Tặc khi vào game
 local function autoSelectPirate()
-    if ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_") then
-        ReplicatedStorage.Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
-        print("✅ Đã tự động chọn Hải Tặc!")
-    else
-        print("❌ Không thể chọn team, có thể đã chọn trước đó.")
-    end
-end
-
--- 📌 Tắt va chạm để có thể bay xuyên tường
-local function disableCollision()
-    for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
+    for i = 1, 5 do
+        if ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_") then
+            ReplicatedStorage.Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
+            print("✅ Đã chọn Hải Tặc!")
+            return
         end
+        wait(1)
     end
+    print("❌ Không thể chọn Hải Tặc!")
 end
 
 -- 📌 Lấy danh sách server chỉ ở Singapore 🇸🇬
 local function getSingaporeServers()
     local url = "https://games.roblox.com/v1/games/2753915549/servers/Public?sortOrder=Asc&limit=100"
-    local response = game:HttpGet(url)
-    local data = HttpService:JSONDecode(response)
+    local success, response = pcall(function() return game:HttpGet(url) end)
 
+    if not success then
+        print("❌ Lỗi lấy danh sách server:", response)
+        return {}
+    end
+
+    local data = HttpService:JSONDecode(response)
     local singaporeServers = {}
+
     for _, server in pairs(data.data) do
         if server.region == "Singapore" and server.playing < server.maxPlayers then
             table.insert(singaporeServers, server.id)
@@ -49,102 +59,28 @@ local function teleportToSingaporeServer()
         print("✅ Đang chuyển đến server Singapore:", randomServer)
         TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer, LocalPlayer)
     else
-        print("❌ Không tìm thấy server Singapore phù hợp!")
+        print("❌ Không tìm thấy server Singapore! Thử đổi server ngẫu nhiên...")
+        TeleportService:Teleport(game.PlaceId, LocalPlayer)
     end
-end
-
--- 📌 Tìm trái ác quỷ gần nhất
-local function findNearestFruit()
-    local closestFruit = nil
-    local closestDistance = math.huge
-
-    for _, fruit in pairs(Workspace:GetChildren()) do
-        if fruit:IsA("Model") and fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
-            local distance = (LocalPlayer.Character.HumanoidRootPart.Position - fruit.Handle.Position).Magnitude
-            if distance < closestDistance then
-                closestDistance = distance
-                closestFruit = fruit
-            end
-        end
-    end
-    return closestFruit
-end
-
--- 📌 Bay đến trái ác quỷ nhanh hơn + xuyên tường
-local function flyToFruit(fruit)
-    if not fruit or not fruit:FindFirstChild("Handle") then return end
-    local character = LocalPlayer.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-
-    local humanoidRootPart = character.HumanoidRootPart
-    disableCollision() -- Kích hoạt xuyên tường
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.Velocity = Vector3.new(0, 200, 0) -- Bay nhanh hơn
-    bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
-    bodyVelocity.Parent = humanoidRootPart
-    wait(0.3)
-
-    RunService.Heartbeat:Connect(function()
-        if fruit and fruit:FindFirstChild("Handle") then
-            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, fruit.Handle.Position)
-            bodyVelocity.Velocity = (fruit.Handle.Position - humanoidRootPart.Position).Unit * 150 -- Tăng tốc bay
-        end
-    end)
-
-    repeat wait() until (humanoidRootPart.Position - fruit.Handle.Position).Magnitude < 5
-    bodyVelocity:Destroy()
-    humanoidRootPart.CFrame = fruit.Handle.CFrame
-    wait(0.5)
-    firetouchinterest(humanoidRootPart, fruit.Handle, 0)
-    firetouchinterest(humanoidRootPart, fruit.Handle, 1)
-end
-
--- 📌 Tự động lưu trái vào kho chính xác
-local function storeFruit()
-    wait(1)
-    local backpack = LocalPlayer.Backpack:GetChildren()
-    for _, item in pairs(backpack) do
-        if item:IsA("Tool") and item.Name:find("Fruit") then
-            if ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_") then
-                ReplicatedStorage.Remotes.CommF_:InvokeServer("StoreFruit", item.Name)
-                print("✅ Đã lưu trái cây:", item.Name)
-                return true
-            else
-                print("❌ Không tìm thấy Remote để lưu Fruit!")
-            end
-        end
-    end
-    print("❌ Không có trái nào để lưu!")
-    return false
 end
 
 -- 📌 Kiểm tra nếu không có trái nào trong 5 giây => Đổi server
 local function checkAndSwitchServer()
-    wait(5) -- Chờ 5 giây
+    wait(5)
     local fruit = findNearestFruit()
     if not fruit then
-        print("❌ Không tìm thấy trái nào trong 5 giây! Đang đổi server...")
+        print("❌ Không tìm thấy trái nào! Đang đổi server...")
         teleportToSingaporeServer()
     else
         print("✅ Đã tìm thấy trái! Tiếp tục thu thập...")
     end
 end
 
--- 📌 Chạy script
+-- 📌 Bắt đầu script
 local function startScript()
-    autoSelectPirate() -- Tự động chọn Hải Tặc khi vào game
-
-    local fruit = findNearestFruit()
-    if fruit then
-        flyToFruit(fruit)
-        if storeFruit() then
-            teleportToSingaporeServer() -- Đổi server sau khi lưu Fruit thành công
-        end
-    else
-        print("⏳ Đợi 5 giây xem có trái nào không...")
-        checkAndSwitchServer()
-    end
+    showNotification() -- Hiển thị thông báo khi chạy
+    autoSelectPirate()
+    checkAndSwitchServer()
 end
 
--- 📌 Bắt đầu script
 startScript()
