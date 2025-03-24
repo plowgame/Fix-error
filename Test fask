@@ -6,24 +6,41 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- 📌 Auto Server Hop (Chuyển server nếu không có trái sau 10s)
-local function getServers()
+-- 📌 Tắt va chạm để có thể bay xuyên tường
+local function disableCollision()
+    for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+end
+
+-- 📌 Lấy danh sách server chỉ ở Singapore 🇸🇬
+local function getSingaporeServers()
     local url = "https://games.roblox.com/v1/games/2753915549/servers/Public?sortOrder=Asc&limit=100"
     local response = game:HttpGet(url)
     local data = HttpService:JSONDecode(response)
-    return data.data
-end
 
-local function teleportToAnotherServer()
-    local servers = getServers()
-    for _, server in pairs(servers) do
-        if server.playing < server.maxPlayers then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
-            print("✅ Đang chuyển đến server mới...")
-            return
+    local singaporeServers = {}
+    for _, server in pairs(data.data) do
+        if server.region == "Singapore" and server.playing < server.maxPlayers then
+            table.insert(singaporeServers, server.id)
         end
     end
-    print("❌ Không tìm thấy server nào phù hợp!")
+
+    return singaporeServers
+end
+
+-- 📌 Đổi server (Chỉ đến server Singapore 🇸🇬)
+local function teleportToSingaporeServer()
+    local servers = getSingaporeServers()
+    if #servers > 0 then
+        local randomServer = servers[math.random(1, #servers)]
+        print("✅ Đang chuyển đến server Singapore:", randomServer)
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer, LocalPlayer)
+    else
+        print("❌ Không tìm thấy server Singapore phù hợp!")
+    end
 end
 
 -- 📌 Tìm trái ác quỷ gần nhất
@@ -40,74 +57,70 @@ local function findNearestFruit()
             end
         end
     end
-    return closestFruit, closestDistance
+    return closestFruit
 end
 
--- 📌 Auto bay đến trái ác quỷ
+-- 📌 Bay đến trái ác quỷ nhanh hơn + xuyên tường
 local function flyToFruit(fruit)
     if not fruit or not fruit:FindFirstChild("Handle") then return end
     local character = LocalPlayer.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return end
 
     local humanoidRootPart = character.HumanoidRootPart
-    local targetPos = fruit.Handle.Position
-    print("🚀 Đang bay đến:", fruit.Name)
-
+    disableCollision() -- Kích hoạt xuyên tường
     local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.Velocity = Vector3.new(0, 100, 0) -- Bay lên cao trước
+    bodyVelocity.Velocity = Vector3.new(0, 200, 0) -- Bay nhanh hơn
     bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
     bodyVelocity.Parent = humanoidRootPart
-    wait(0.5)
+    wait(0.3)
 
     RunService.Heartbeat:Connect(function()
         if fruit and fruit:FindFirstChild("Handle") then
             humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, fruit.Handle.Position)
-            bodyVelocity.Velocity = (fruit.Handle.Position - humanoidRootPart.Position).Unit * 100
+            bodyVelocity.Velocity = (fruit.Handle.Position - humanoidRootPart.Position).Unit * 150 -- Tăng tốc bay
         end
     end)
 
     repeat wait() until (humanoidRootPart.Position - fruit.Handle.Position).Magnitude < 5
     bodyVelocity:Destroy()
     humanoidRootPart.CFrame = fruit.Handle.CFrame
-    wait(1)
+    wait(0.5)
     firetouchinterest(humanoidRootPart, fruit.Handle, 0)
     firetouchinterest(humanoidRootPart, fruit.Handle, 1)
 end
 
--- 📌 Tự động lưu trái vào kho ngay khi nhặt được
+-- 📌 Tự động lưu trái vào kho chính xác
 local function storeFruit()
     wait(1)
     local backpack = LocalPlayer.Backpack:GetChildren()
     for _, item in pairs(backpack) do
         if item:IsA("Tool") and item.Name:find("Fruit") then
-            ReplicatedStorage.Remotes.CommF_:InvokeServer("StoreFruit", item.Name)
-            print("✅ Đã lưu trái cây:", item.Name)
-            return
+            if ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_") then
+                ReplicatedStorage.Remotes.CommF_:InvokeServer("StoreFruit", item.Name)
+                print("✅ Đã lưu trái cây:", item.Name)
+                return true
+            else
+                print("❌ Không tìm thấy Remote để lưu Fruit!")
+            end
         end
     end
     print("❌ Không có trái nào để lưu!")
+    return false
 end
 
 -- 📌 Chạy script
 local function startScript()
-    local fruit, distance = findNearestFruit()
+    local fruit = findNearestFruit()
     if fruit then
         flyToFruit(fruit)
-        storeFruit()
+        if storeFruit() then
+            teleportToSingaporeServer() -- Đổi server sau khi lưu Fruit thành công
+        end
     else
-        print("❌ Không tìm thấy trái! Đổi server sau 10s...")
-        wait(10)
-        teleportToAnotherServer()
+        print("❌ Không tìm thấy trái! Đổi server Singapore ngay...")
+        teleportToSingaporeServer()
     end
 end
 
 -- 📌 Bắt đầu script
 startScript()
-
--- 📌 Auto đổi server sau 10s nếu không có trái
-task.spawn(function()
-    wait(10)
-    if not findNearestFruit() then
-        teleportToAnotherServer()
-    end
-end)
