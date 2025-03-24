@@ -37,7 +37,7 @@ Title.Font = Enum.Font.SourceSansBold
 -- Logo PG
 Logo.Size = UDim2.new(0, 40, 0, 40)
 Logo.Position = UDim2.new(0, 5, 0, 5)
-Logo.Image = "rbxassetid://INSERT_LOGO_ID_HERE" -- Thay bằng ID ảnh logo PG
+Logo.Image = "rbxassetid://100439996681560" -- Thay bằng ID ảnh logo PG
 Logo.BackgroundTransparency = 1
 
 -- Trạng thái thông báo
