@@ -4,10 +4,29 @@ local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 -- 📌 Webhook Discord (Thay bằng link webhook của bạn)
-local WebhookURL = "https://discord.com/api/webhooks/1353331618802044928/HWkDOTGUkOz_IWQGzdYVz-7aK75-R5yDN07Lw2PIpNkeo3Szj6Gv2N5S3sdWwGcXEDfj"
+local WebhookURL = "YOUR_DISCORD_WEBHOOK_HERE"
+
+-- 📌 Giảm đồ họa để giảm lag
+local function reduceGraphics()
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level1 -- Giảm chất lượng đồ họa
+    Lighting.GlobalShadows = false -- Tắt bóng đổ
+    Lighting.FogEnd = 9e9 -- Xóa sương mù
+    game:GetService("Workspace").Terrain.WaterWaveSize = 0
+    game:GetService("Workspace").Terrain.WaterWaveSpeed = 0
+    game:GetService("Workspace").Terrain.WaterReflectance = 0
+    game:GetService("Workspace").Terrain.WaterTransparency = 1
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("Part") or v:IsA("MeshPart") or v:IsA("UnionOperation") then
+            v.Material = Enum.Material.Plastic -- Chuyển tất cả vật liệu về nhựa để giảm lag
+        end
+    end
+    print("🔧 Đã giảm đồ họa để tối ưu hiệu suất!")
+end
 
 -- 📌 Hiển thị thông báo trên màn hình
 local function showNotification(title, text, duration)
@@ -18,29 +37,42 @@ local function showNotification(title, text, duration)
     })
 end
 
--- 📌 Tạo UI hiển thị thông báo
+-- 📌 Tạo UI hiển thị thông báo với tiêu đề "Plow Hub"
 local function createUI()
     local ScreenGui = Instance.new("ScreenGui")
     local Frame = Instance.new("Frame")
-    local TextLabel = Instance.new("TextLabel")
+    local TitleLabel = Instance.new("TextLabel") -- Tiêu đề Plow Hub
+    local StatusLabel = Instance.new("TextLabel") -- Trạng thái thông báo
 
-    -- Thuộc tính của UI
+    -- Gắn UI vào CoreGui để hiển thị
     ScreenGui.Parent = game.CoreGui
+
+    -- Khung chứa UI
     Frame.Parent = ScreenGui
     Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     Frame.BorderSizePixel = 2
     Frame.Position = UDim2.new(0.35, 0, 0.1, 0)
-    Frame.Size = UDim2.new(0.3, 0, 0.1, 0)
+    Frame.Size = UDim2.new(0.3, 0, 0.12, 0)
     Frame.BackgroundTransparency = 0.5
 
-    TextLabel.Parent = Frame
-    TextLabel.Size = UDim2.new(1, 0, 1, 0)
-    TextLabel.Text = "🔍 Đang kiểm tra trái ác quỷ..."
-    TextLabel.TextScaled = true
-    TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TextLabel.BackgroundTransparency = 1
+    -- Tiêu đề "Plow Hub"
+    TitleLabel.Parent = Frame
+    TitleLabel.Size = UDim2.new(1, 0, 0.3, 0)
+    TitleLabel.Text = "🔹 Plow Hub 🔹"
+    TitleLabel.TextScaled = true
+    TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+    TitleLabel.BackgroundTransparency = 1
 
-    return TextLabel
+    -- Trạng thái tìm trái ác quỷ
+    StatusLabel.Parent = Frame
+    StatusLabel.Size = UDim2.new(1, 0, 0.7, 0)
+    StatusLabel.Position = UDim2.new(0, 0, 0.3, 0)
+    StatusLabel.Text = "🔍 Đang kiểm tra trái ác quỷ..."
+    StatusLabel.TextScaled = true
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    StatusLabel.BackgroundTransparency = 1
+
+    return StatusLabel
 end
 
 -- 📌 Gửi thông báo khi khởi động script
@@ -49,7 +81,7 @@ local function startupMessage(uiLabel)
     showNotification("Plow Hub | Auto Fruit", "🚀 Đang tìm trái ác quỷ...", 5)
 end
 
--- 📌 Tìm trái ác quỷ gần nhất và hiển thị trên UI
+-- 📌 Tìm trái ác quỷ gần nhất và cập nhật UI
 local function findNearestFruit(uiLabel)
     for _, fruit in pairs(Workspace:GetChildren()) do
         if fruit:IsA("Model") and fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
@@ -92,6 +124,7 @@ end
 local function startScript()
     local uiLabel = createUI() -- Tạo UI hiển thị thông báo
     startupMessage(uiLabel) -- Hiển thị thông báo khi chạy script
+    reduceGraphics() -- Giảm đồ họa để tối ưu hiệu suất
     checkAndStoreFruit(uiLabel) -- Tìm trái, lưu vào kho, đổi server
 end
 
