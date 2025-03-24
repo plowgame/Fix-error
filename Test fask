@@ -1,3 +1,6 @@
+repeat wait() until game:IsLoaded()
+wait(2) -- Đợi game load xong để tránh lỗi
+
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,6 +11,14 @@ local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
+-- Kiểm tra RemoteEvents và mở quyền truy cập
+if ReplicatedStorage:FindFirstChild("Remotes") then
+    local event = ReplicatedStorage.Remotes:FindFirstChild("CheckStats")
+    if event then
+        event:InvokeServer() -- Kích hoạt event để mở quyền truy cập
+    end
+end
+
 local function showNotification(title, text, duration)
     StarterGui:SetCore("SendNotification", {
         Title = title;
@@ -16,63 +27,7 @@ local function showNotification(title, text, duration)
     })
 end
 
-local function createUI()
-    local ScreenGui = Instance.new("ScreenGui")
-    local Frame = Instance.new("Frame")
-    local TitleLabel = Instance.new("TextLabel")
-    local StatusLabel = Instance.new("TextLabel")
-
-    ScreenGui.Parent = game.CoreGui
-
-    Frame.Parent = ScreenGui
-    Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    Frame.BorderSizePixel = 2
-    Frame.Position = UDim2.new(0.35, 0, 0.1, 0)
-    Frame.Size = UDim2.new(0.3, 0, 0.12, 0)
-    Frame.BackgroundTransparency = 0.5
-
-    TitleLabel.Parent = Frame
-    TitleLabel.Size = UDim2.new(1, 0, 0.3, 0)
-    TitleLabel.Text = "🔹Plow Hub🔹"
-    TitleLabel.TextScaled = true
-    TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
-    TitleLabel.BackgroundTransparency = 1
-
-    StatusLabel.Parent = Frame
-    StatusLabel.Size = UDim2.new(1, 0, 0.7, 0)
-    StatusLabel.Position = UDim2.new(0, 0, 0.3, 0)
-    StatusLabel.Text = "Đang kiểm tra trái ác quỷ..."
-    StatusLabel.TextScaled = true
-    StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    StatusLabel.BackgroundTransparency = 1
-
-    return StatusLabel
-end
-
-local function flyToPosition(targetPosition, speed)
-    if not HumanoidRootPart then return end
-    local distance = (targetPosition - HumanoidRootPart.Position).magnitude
-    local duration = distance / speed
-
-    for _, v in pairs(Character:GetDescendants()) do
-        if v:IsA("BasePart") then
-            v.CanCollide = false
-        end
-    end
-
-    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-    local tween = game:GetService("TweenService"):Create(HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(targetPosition)})
-    tween:Play()
-    tween.Completed:Wait()
-
-    for _, v in pairs(Character:GetDescendants()) do
-        if v:IsA("BasePart") then
-            v.CanCollide = true
-        end
-    end
-end
-
-local function findNearestFruit(uiLabel)
+local function findNearestFruit()
     local closestFruit = nil
     local closestDistance = math.huge
 
@@ -88,11 +43,9 @@ local function findNearestFruit(uiLabel)
 
     if closestFruit then
         showNotification("Plow Hub | Auto Fruit", "Tìm thấy trái " .. closestFruit.Name, 3)
-        uiLabel.Text = "Tìm thấy trái: " .. closestFruit.Name
         return closestFruit
     end
 
-    uiLabel.Text = "Không có trái ác quỷ"
     return nil
 end
 
@@ -109,38 +62,27 @@ local function storeFruitInInventory(fruit)
     return false
 end
 
-local function switchServerAfterDelay(uiLabel)
-    print("Không có trái, chờ 7 giây trước khi đổi server...")
-    uiLabel.Text = "Không có trái! Chờ 7 giây..."
-    showNotification("Plow Hub | Auto Fruit", "Không có trái! Đang chờ 7 giây...", 7)
-    wait(7) 
+local function switchServer()
+    showNotification("Plow Hub | Auto Fruit", "Không có trái! Đang đổi server...", 3)
+    wait(7) -- Chờ 7 giây trước khi đổi server
     TeleportService:Teleport(game.PlaceId, LocalPlayer)
 end
 
-local function checkAndStoreFruit(uiLabel)
-    local fruit = findNearestFruit(uiLabel)
+local function checkAndStoreFruit()
+    local fruit = findNearestFruit()
 
     if fruit then
         showNotification("Plow Hub | Auto Fruit", "Đang nhặt trái...", 3)
-        uiLabel.Text = "Đang nhặt trái..."
-        
-        flyToPosition(fruit.Handle.Position, 200)
         wait(1)
-
         local success = storeFruitInInventory(fruit)
         if success then
-            uiLabel.Text = "Đã lưu trái vào kho!"
+            showNotification("Plow Hub | Auto Fruit", "Đã lưu trái vào kho!", 3)
         else
-            uiLabel.Text = "Không thể lưu trái!"
+            showNotification("Plow Hub | Auto Fruit", "Không thể lưu trái!", 3)
         end
     else
-        switchServerAfterDelay(uiLabel)
+        switchServer()
     end
 end
 
-local function startScript()
-    local uiLabel = createUI()
-    checkAndStoreFruit(uiLabel)
-end
-
-startScript()
+checkAndStoreFruit()
