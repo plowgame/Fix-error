@@ -6,6 +6,9 @@ local Workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
+-- 📌 Webhook Discord (Thay bằng link webhook của bạn)
+local WebhookURL = "https://discord.com/api/webhooks/1353331618802044928/HWkDOTGUkOz_IWQGzdYVz-7aK75-R5yDN07Lw2PIpNkeo3Szj6Gv2N5S3sdWwGcXEDfj"
+
 -- 📌 Hiển thị thông báo trên màn hình
 local function showNotification(title, text, duration)
     StarterGui:SetCore("SendNotification", {
@@ -15,8 +18,20 @@ local function showNotification(title, text, duration)
     })
 end
 
--- 📌 Hiển thị thông báo khi script bắt đầu
-showNotification("Plow Hub | Auto Fruit", "Đang khởi động...", 3)
+-- 📌 Gửi thông báo đến Discord Webhook
+local function sendDiscordMessage(fruitName, fruitPosition)
+    local data = {
+        ["username"] = "Plow Hub | Auto Fruit",
+        ["embeds"] = {{
+            ["title"] = "🍏 Tìm thấy trái ác quỷ!",
+            ["description"] = "**Tên Trái:** " .. fruitName .. "\n**Vị trí:** " .. tostring(fruitPosition),
+            ["color"] = 16711680 -- Màu đỏ
+        }}
+    }
+
+    local jsonData = HttpService:JSONEncode(data)
+    HttpService:PostAsync(WebhookURL, jsonData, Enum.HttpContentType.ApplicationJson)
+end
 
 -- 📌 Lấy danh sách server chỉ ở Singapore 🇸🇬
 local function getSingaporeServers()
@@ -55,10 +70,13 @@ local function fastTeleportToSingaporeServer()
     end
 end
 
--- 📌 Tìm trái ác quỷ gần nhất
+-- 📌 Tìm trái ác quỷ gần nhất và gửi webhook
 local function findNearestFruit()
     for _, fruit in pairs(Workspace:GetChildren()) do
         if fruit:IsA("Model") and fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
+            local fruitPosition = fruit.Handle.Position
+            showNotification("Plow Hub | Auto Fruit", "Đã tìm thấy trái " .. fruit.Name .. "!", 3)
+            sendDiscordMessage(fruit.Name, fruitPosition)
             return true
         end
     end
