@@ -1,12 +1,8 @@
-repeat wait() until game:IsLoaded()
-wait(2) -- Đợi game load xong để tránh lỗi
-
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
@@ -15,24 +11,34 @@ local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local Frame = Instance.new("Frame", ScreenGui)
 local Title = Instance.new("TextLabel", Frame)
+local SubTitle = Instance.new("TextLabel", Frame)
 local Logo = Instance.new("ImageLabel", Frame)
 local StatusLabel = Instance.new("TextLabel", Frame)
 
-ScreenGui.Name = "PlowHubUI"
-Frame.Size = UDim2.new(0, 300, 0, 80)
-Frame.Position = UDim2.new(0.5, -150, 0.05, 0)
+ScreenGui.Name = "PlowGameUI"
+Frame.Size = UDim2.new(0, 350, 0, 100)
+Frame.Position = UDim2.new(0.5, -175, 0.05, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BorderSizePixel = 2
 Frame.BackgroundTransparency = 0.2
 
--- Tên "Plow Hub"
+-- Tiêu đề "Plow Game | Community"
 Title.Size = UDim2.new(1, -50, 0, 30)
 Title.Position = UDim2.new(0, 50, 0, 5)
-Title.Text = "Plow Hub"
+Title.Text = "Plow Game | Community"
 Title.TextScaled = true
 Title.TextColor3 = Color3.fromRGB(180, 100, 255) -- Màu tím nhạt
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.SourceSansBold
+
+-- Trạng thái Fruit
+SubTitle.Size = UDim2.new(1, 0, 0, 20)
+SubTitle.Position = UDim2.new(0, 0, 0, 35)
+SubTitle.Text = "Trạng thái: Đang kiểm tra..."
+SubTitle.TextScaled = true
+SubTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Font = Enum.Font.SourceSans
 
 -- Logo PG
 Logo.Size = UDim2.new(0, 40, 0, 40)
@@ -40,33 +46,10 @@ Logo.Position = UDim2.new(0, 5, 0, 5)
 Logo.Image = "rbxassetid://100439996681560" -- Thay bằng ID ảnh logo PG
 Logo.BackgroundTransparency = 1
 
--- Trạng thái thông báo
-StatusLabel.Size = UDim2.new(1, 0, 0, 30)
-StatusLabel.Position = UDim2.new(0, 0, 0, 40)
-StatusLabel.TextScaled = true
-StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Đang khởi động..."
-StatusLabel.Font = Enum.Font.SourceSans
-
--- Hiển thị trạng thái UI
+-- Hiển thị trạng thái thông báo
 local function updateUI(text)
-    StatusLabel.Text = text
+    SubTitle.Text = "Trạng thái: " .. text
 end
-
--- Tự động chọn Hải Tặc hoặc Hải Quân
-local function autoSelectTeam()
-    if ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("ChooseTeam") then
-        local chooseTeam = ReplicatedStorage.Remotes.ChooseTeam
-        local success = pcall(function() chooseTeam:InvokeServer("Pirates") end)
-        
-        if not success then
-            pcall(function() chooseTeam:InvokeServer("Marines") end)
-        end
-    end
-end
-
-autoSelectTeam() -- Chạy khi script khởi động
 
 -- Kiểm tra RemoteEvents và mở quyền truy cập
 if ReplicatedStorage:FindFirstChild("Remotes") then
@@ -89,7 +72,7 @@ local function teleportToFruit(fruit)
     if fruit and fruit:FindFirstChild("Handle") then
         updateUI("Đang bay tới " .. fruit.Name .. "...")
         
-        -- Cho phép bay xuyên vật thể
+        -- Bay xuyên vật thể
         Character.HumanoidRootPart.CFrame = fruit.Handle.CFrame
         wait(1)
         
