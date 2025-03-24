@@ -3,31 +3,20 @@ local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
--- 📌 Hiển thị thông báo khi script bắt đầu
-local function showNotification()
+-- 📌 Hiển thị thông báo trên màn hình
+local function showNotification(title, text, duration)
     StarterGui:SetCore("SendNotification", {
-        Title = "Plow Hub | Auto Fruit";
-        Text = "Đang khởi động...";
-        Duration = 5; -- Hiển thị trong 5 giây
+        Title = title;
+        Text = text;
+        Duration = duration;
     })
 end
 
--- 📌 Tự động chọn Hải Tặc khi vào game
-local function autoSelectPirate()
-    for i = 1, 5 do
-        if ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_") then
-            ReplicatedStorage.Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
-            print("✅ Đã chọn Hải Tặc!")
-            return
-        end
-        wait(1)
-    end
-    print("❌ Không thể chọn Hải Tặc!")
-end
+-- 📌 Hiển thị thông báo khi script bắt đầu
+showNotification("Plow Hub | Auto Fruit", "Đang khởi động...", 3)
 
 -- 📌 Lấy danh sách server chỉ ở Singapore 🇸🇬
 local function getSingaporeServers()
@@ -51,36 +40,45 @@ local function getSingaporeServers()
     return singaporeServers
 end
 
--- 📌 Đổi server (Chỉ đến server Singapore 🇸🇬)
-local function teleportToSingaporeServer()
+-- 📌 Đổi server (Siêu nhanh, chỉ đến server Singapore 🇸🇬)
+local function fastTeleportToSingaporeServer()
     local servers = getSingaporeServers()
     if #servers > 0 then
         local randomServer = servers[math.random(1, #servers)]
         print("✅ Đang chuyển đến server Singapore:", randomServer)
+        showNotification("Plow Hub | Auto Fruit", "Đổi server siêu nhanh...", 2)
         TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer, LocalPlayer)
     else
-        print("❌ Không tìm thấy server Singapore! Thử đổi server ngẫu nhiên...")
+        print("❌ Không tìm thấy server Singapore! Đổi server khác...")
+        showNotification("Plow Hub | Auto Fruit", "Không tìm thấy server! Đang đổi server...", 2)
         TeleportService:Teleport(game.PlaceId, LocalPlayer)
     end
 end
 
--- 📌 Kiểm tra nếu không có trái nào trong 5 giây => Đổi server
-local function checkAndSwitchServer()
-    wait(5)
-    local fruit = findNearestFruit()
-    if not fruit then
-        print("❌ Không tìm thấy trái nào! Đang đổi server...")
-        teleportToSingaporeServer()
+-- 📌 Tìm trái ác quỷ gần nhất
+local function findNearestFruit()
+    for _, fruit in pairs(Workspace:GetChildren()) do
+        if fruit:IsA("Model") and fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
+            return true
+        end
+    end
+    return false
+end
+
+-- 📌 Kiểm tra ngay lập tức nếu không có trái => Đổi server siêu nhanh
+local function instantCheckAndSwitchServer()
+    if not findNearestFruit() then
+        print("❌ Không có trái! Đổi server ngay lập tức...")
+        showNotification("Plow Hub | Auto Fruit", "Không có trái! Đổi server ngay...", 2)
+        fastTeleportToSingaporeServer()
     else
-        print("✅ Đã tìm thấy trái! Tiếp tục thu thập...")
+        print("✅ Đã tìm thấy trái! Không cần đổi server.")
     end
 end
 
 -- 📌 Bắt đầu script
 local function startScript()
-    showNotification() -- Hiển thị thông báo khi chạy
-    autoSelectPirate()
-    checkAndSwitchServer()
+    instantCheckAndSwitchServer() -- Kiểm tra ngay lập tức
 end
 
 startScript()
