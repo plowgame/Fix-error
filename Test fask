@@ -1,32 +1,12 @@
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
-local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-
--- 📌 Webhook Discord (Thay bằng link webhook của bạn)
-local WebhookURL = "YOUR_DISCORD_WEBHOOK_HERE"
-
--- 📌 Giảm đồ họa để giảm lag
-local function reduceGraphics()
-    settings().Rendering.QualityLevel = Enum.QualityLevel.Level1 -- Giảm chất lượng đồ họa
-    Lighting.GlobalShadows = false -- Tắt bóng đổ
-    Lighting.FogEnd = 9e9 -- Xóa sương mù
-    game:GetService("Workspace").Terrain.WaterWaveSize = 0
-    game:GetService("Workspace").Terrain.WaterWaveSpeed = 0
-    game:GetService("Workspace").Terrain.WaterReflectance = 0
-    game:GetService("Workspace").Terrain.WaterTransparency = 1
-    for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("Part") or v:IsA("MeshPart") or v:IsA("UnionOperation") then
-            v.Material = Enum.Material.Plastic -- Chuyển tất cả vật liệu về nhựa để giảm lag
-        end
-    end
-    print("🔧 Đã giảm đồ họa để tối ưu hiệu suất!")
-end
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
 
 -- 📌 Hiển thị thông báo trên màn hình
 local function showNotification(title, text, duration)
@@ -41,13 +21,11 @@ end
 local function createUI()
     local ScreenGui = Instance.new("ScreenGui")
     local Frame = Instance.new("Frame")
-    local TitleLabel = Instance.new("TextLabel") -- Tiêu đề Plow Hub
-    local StatusLabel = Instance.new("TextLabel") -- Trạng thái thông báo
+    local TitleLabel = Instance.new("TextLabel")
+    local StatusLabel = Instance.new("TextLabel")
 
-    -- Gắn UI vào CoreGui để hiển thị
     ScreenGui.Parent = game.CoreGui
 
-    -- Khung chứa UI
     Frame.Parent = ScreenGui
     Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     Frame.BorderSizePixel = 2
@@ -55,7 +33,6 @@ local function createUI()
     Frame.Size = UDim2.new(0.3, 0, 0.12, 0)
     Frame.BackgroundTransparency = 0.5
 
-    -- Tiêu đề "Plow Hub"
     TitleLabel.Parent = Frame
     TitleLabel.Size = UDim2.new(1, 0, 0.3, 0)
     TitleLabel.Text = "🔹 Plow Hub 🔹"
@@ -63,11 +40,10 @@ local function createUI()
     TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
     TitleLabel.BackgroundTransparency = 1
 
-    -- Trạng thái tìm trái ác quỷ
     StatusLabel.Parent = Frame
     StatusLabel.Size = UDim2.new(1, 0, 0.7, 0)
     StatusLabel.Position = UDim2.new(0, 0, 0.3, 0)
-    StatusLabel.Text = "Đang kiểm tra Sever..."
+    StatusLabel.Text = "🔍 Đang kiểm tra trái ác quỷ..."
     StatusLabel.TextScaled = true
     StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     StatusLabel.BackgroundTransparency = 1
@@ -75,24 +51,70 @@ local function createUI()
     return StatusLabel
 end
 
--- 📌 Gửi thông báo khi khởi động script
-local function startupMessage(uiLabel)
-    uiLabel.Text = "🔍 Đang kiểm tra trái ác quỷ..."
-    showNotification("Plow Hub | Auto Fruit", "🚀 Đang tìm fruit...", 5)
-end
+-- 📌 Bay đến vị trí trái ác quỷ và nhặt
+local function flyToPosition(targetPosition, speed)
+    if not HumanoidRootPart then return end
+    local distance = (targetPosition - HumanoidRootPart.Position).magnitude
+    local duration = distance / speed
 
--- 📌 Tìm trái ác quỷ gần nhất và cập nhật UI
-local function findNearestFruit(uiLabel)
-    for _, fruit in pairs(Workspace:GetChildren()) do
-        if fruit:IsA("Model") and fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
-            local fruitPosition = fruit.Handle.Position
-            showNotification("Plow Hub | Auto Fruit", "✅ Tìm thấy trái " .. fruit.Name, 3)
-            uiLabel.Text = "✅ Tìm thấy trái: " .. fruit.Name
-            return fruit
+    -- Vô hiệu va chạm để bay xuyên vật thể
+    for _, v in pairs(Character:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = false
         end
     end
+
+    -- Bay đến vị trí trái ác quỷ
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local tween = game:GetService("TweenService"):Create(HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(targetPosition)})
+    tween:Play()
+    tween.Completed:Wait()
+
+    -- Bật lại va chạm sau khi bay xong
+    for _, v in pairs(Character:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = true
+        end
+    end
+end
+
+-- 📌 Tìm trái ác quỷ gần nhất
+local function findNearestFruit(uiLabel)
+    local closestFruit = nil
+    local closestDistance = math.huge
+
+    for _, fruit in pairs(Workspace:GetChildren()) do
+        if fruit:IsA("Model") and fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
+            local distance = (fruit.Handle.Position - HumanoidRootPart.Position).magnitude
+            if distance < closestDistance then
+                closestDistance = distance
+                closestFruit = fruit
+            end
+        end
+    end
+
+    if closestFruit then
+        showNotification("Plow Hub | Auto Fruit", "✅ Tìm thấy trái " .. closestFruit.Name, 3)
+        uiLabel.Text = "✅ Tìm thấy trái: " .. closestFruit.Name
+        return closestFruit
+    end
+
     uiLabel.Text = "❌ Không có trái ác quỷ"
     return nil
+end
+
+-- 📌 Lưu trái vào kho
+local function storeFruitInInventory(fruit)
+    if fruit and fruit:FindFirstChild("Handle") then
+        local args = {
+            [1] = fruit.Name,
+            [2] = fruit.Handle.Position
+        }
+        ReplicatedStorage.Remotes:FindFirstChild("StoreFruit"):InvokeServer(unpack(args)) -- Gửi yêu cầu lưu trái
+        showNotification("Plow Hub | Auto Fruit", "✅ Đã lưu " .. fruit.Name .. " vào kho!", 3)
+        return true
+    end
+    return false
 end
 
 -- 📌 Đổi server nếu không có trái
@@ -100,32 +122,36 @@ local function switchServerAfterDelay(uiLabel)
     print("⏳ Không có trái, chờ 7 giây trước khi đổi server...")
     uiLabel.Text = "⏳ Không có trái! Chờ 7 giây..."
     showNotification("Plow Hub | Auto Fruit", "Không có trái! Đang chờ 7 giây...", 7)
-    wait(7) -- Chờ 7 giây
+    wait(7) 
     TeleportService:Teleport(game.PlaceId, LocalPlayer)
 end
 
--- 📌 Tìm và lưu trữ trái, sau đó đổi server nếu cần
+-- 📌 Tìm, nhặt và lưu trái vào kho
 local function checkAndStoreFruit(uiLabel)
     local fruit = findNearestFruit(uiLabel)
 
     if fruit then
         showNotification("Plow Hub | Auto Fruit", "✅ Đang nhặt trái...", 3)
         uiLabel.Text = "✅ Đang nhặt trái..."
-        -- Lưu trái vào kho (Giả lập nhặt trái)
-        wait(3)
-        showNotification("Plow Hub | Auto Fruit", "✅ Đã lưu trái vào kho!", 3)
-        uiLabel.Text = "✅ Đã lưu trái vào kho!"
+        
+        flyToPosition(fruit.Handle.Position, 200)
+        wait(1) -- Đợi 1 giây để chắc chắn đến nơi
+
+        local success = storeFruitInInventory(fruit)
+        if success then
+            uiLabel.Text = "✅ Đã lưu trái vào kho!"
+        else
+            uiLabel.Text = "❌ Không thể lưu trái!"
+        end
     else
-        switchServerAfterDelay(uiLabel) -- Không có trái, chờ 7 giây rồi đổi server
+        switchServerAfterDelay(uiLabel)
     end
 end
 
 -- 📌 Bắt đầu script
 local function startScript()
-    local uiLabel = createUI() -- Tạo UI hiển thị thông báo
-    startupMessage(uiLabel) -- Hiển thị thông báo khi chạy script
-    reduceGraphics() -- Giảm đồ họa để tối ưu hiệu suất
-    checkAndStoreFruit(uiLabel) -- Tìm trái, lưu vào kho, đổi server
+    local uiLabel = createUI()
+    checkAndStoreFruit(uiLabel)
 end
 
 startScript()
