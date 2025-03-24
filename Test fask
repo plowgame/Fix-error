@@ -1,0 +1,113 @@
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- 📌 Auto Server Hop (Chuyển server nếu không có trái sau 10s)
+local function getServers()
+    local url = "https://games.roblox.com/v1/games/2753915549/servers/Public?sortOrder=Asc&limit=100"
+    local response = game:HttpGet(url)
+    local data = HttpService:JSONDecode(response)
+    return data.data
+end
+
+local function teleportToAnotherServer()
+    local servers = getServers()
+    for _, server in pairs(servers) do
+        if server.playing < server.maxPlayers then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+            print("✅ Đang chuyển đến server mới...")
+            return
+        end
+    end
+    print("❌ Không tìm thấy server nào phù hợp!")
+end
+
+-- 📌 Tìm trái ác quỷ gần nhất
+local function findNearestFruit()
+    local closestFruit = nil
+    local closestDistance = math.huge
+
+    for _, fruit in pairs(Workspace:GetChildren()) do
+        if fruit:IsA("Model") and fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
+            local distance = (LocalPlayer.Character.HumanoidRootPart.Position - fruit.Handle.Position).Magnitude
+            if distance < closestDistance then
+                closestDistance = distance
+                closestFruit = fruit
+            end
+        end
+    end
+    return closestFruit, closestDistance
+end
+
+-- 📌 Auto bay đến trái ác quỷ
+local function flyToFruit(fruit)
+    if not fruit or not fruit:FindFirstChild("Handle") then return end
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+
+    local humanoidRootPart = character.HumanoidRootPart
+    local targetPos = fruit.Handle.Position
+    print("🚀 Đang bay đến:", fruit.Name)
+
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = Vector3.new(0, 100, 0) -- Bay lên cao trước
+    bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+    bodyVelocity.Parent = humanoidRootPart
+    wait(0.5)
+
+    RunService.Heartbeat:Connect(function()
+        if fruit and fruit:FindFirstChild("Handle") then
+            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, fruit.Handle.Position)
+            bodyVelocity.Velocity = (fruit.Handle.Position - humanoidRootPart.Position).Unit * 100
+        end
+    end)
+
+    repeat wait() until (humanoidRootPart.Position - fruit.Handle.Position).Magnitude < 5
+    bodyVelocity:Destroy()
+    humanoidRootPart.CFrame = fruit.Handle.CFrame
+    wait(1)
+    firetouchinterest(humanoidRootPart, fruit.Handle, 0)
+    firetouchinterest(humanoidRootPart, fruit.Handle, 1)
+end
+
+-- 📌 Tự động lưu trái vào kho ngay khi nhặt được
+local function storeFruit()
+    wait(1)
+    local backpack = LocalPlayer.Backpack:GetChildren()
+    for _, item in pairs(backpack) do
+        if item:IsA("Tool") and item.Name:find("Fruit") then
+            ReplicatedStorage.Remotes.CommF_:InvokeServer("StoreFruit", item.Name)
+            print("✅ Đã lưu trái cây:", item.Name)
+            return
+        end
+    end
+    print("❌ Không có trái nào để lưu!")
+end
+
+-- 📌 Chạy script
+local function startScript()
+    local fruit, distance = findNearestFruit()
+    if fruit then
+        flyToFruit(fruit)
+        storeFruit()
+    else
+        print("❌ Không tìm thấy trái! Đổi server sau 10s...")
+        wait(10)
+        teleportToAnotherServer()
+    end
+end
+
+-- 📌 Bắt đầu script
+startScript()
+
+-- 📌 Auto đổi server sau 10s nếu không có trái
+task.spawn(function()
+    wait(10)
+    if not findNearestFruit() then
+        teleportToAnotherServer()
+    end
+end)
