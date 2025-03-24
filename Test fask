@@ -6,9 +6,8 @@ local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
--- 📌 Hiển thị thông báo trên màn hình
 local function showNotification(title, text, duration)
     StarterGui:SetCore("SendNotification", {
         Title = title;
@@ -17,7 +16,6 @@ local function showNotification(title, text, duration)
     })
 end
 
--- 📌 Tạo UI hiển thị thông báo với tiêu đề "Plow Hub"
 local function createUI()
     local ScreenGui = Instance.new("ScreenGui")
     local Frame = Instance.new("Frame")
@@ -35,7 +33,7 @@ local function createUI()
 
     TitleLabel.Parent = Frame
     TitleLabel.Size = UDim2.new(1, 0, 0.3, 0)
-    TitleLabel.Text = "🔹 Plow Hub 🔹"
+    TitleLabel.Text = "Plow Hub"
     TitleLabel.TextScaled = true
     TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
     TitleLabel.BackgroundTransparency = 1
@@ -43,7 +41,7 @@ local function createUI()
     StatusLabel.Parent = Frame
     StatusLabel.Size = UDim2.new(1, 0, 0.7, 0)
     StatusLabel.Position = UDim2.new(0, 0, 0.3, 0)
-    StatusLabel.Text = "🔍 Đang kiểm tra trái ác quỷ..."
+    StatusLabel.Text = "Đang kiểm tra trái ác quỷ..."
     StatusLabel.TextScaled = true
     StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     StatusLabel.BackgroundTransparency = 1
@@ -51,26 +49,22 @@ local function createUI()
     return StatusLabel
 end
 
--- 📌 Bay đến vị trí trái ác quỷ và nhặt
 local function flyToPosition(targetPosition, speed)
     if not HumanoidRootPart then return end
     local distance = (targetPosition - HumanoidRootPart.Position).magnitude
     local duration = distance / speed
 
-    -- Vô hiệu va chạm để bay xuyên vật thể
     for _, v in pairs(Character:GetDescendants()) do
         if v:IsA("BasePart") then
             v.CanCollide = false
         end
     end
 
-    -- Bay đến vị trí trái ác quỷ
     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
     local tween = game:GetService("TweenService"):Create(HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(targetPosition)})
     tween:Play()
     tween.Completed:Wait()
 
-    -- Bật lại va chạm sau khi bay xong
     for _, v in pairs(Character:GetDescendants()) do
         if v:IsA("BasePart") then
             v.CanCollide = true
@@ -78,7 +72,6 @@ local function flyToPosition(targetPosition, speed)
     end
 end
 
--- 📌 Tìm trái ác quỷ gần nhất
 local function findNearestFruit(uiLabel)
     local closestFruit = nil
     local closestDistance = math.huge
@@ -94,61 +87,57 @@ local function findNearestFruit(uiLabel)
     end
 
     if closestFruit then
-        showNotification("Plow Hub | Auto Fruit", "✅ Tìm thấy trái " .. closestFruit.Name, 3)
-        uiLabel.Text = "✅ Tìm thấy trái: " .. closestFruit.Name
+        showNotification("Plow Hub | Auto Fruit", "Tìm thấy trái " .. closestFruit.Name, 3)
+        uiLabel.Text = "Tìm thấy trái: " .. closestFruit.Name
         return closestFruit
     end
 
-    uiLabel.Text = "❌ Không có trái ác quỷ"
+    uiLabel.Text = "Không có trái ác quỷ"
     return nil
 end
 
--- 📌 Lưu trái vào kho
 local function storeFruitInInventory(fruit)
     if fruit and fruit:FindFirstChild("Handle") then
         local args = {
             [1] = fruit.Name,
             [2] = fruit.Handle.Position
         }
-        ReplicatedStorage.Remotes:FindFirstChild("StoreFruit"):InvokeServer(unpack(args)) -- Gửi yêu cầu lưu trái
-        showNotification("Plow Hub | Auto Fruit", "✅ Đã lưu " .. fruit.Name .. " vào kho!", 3)
+        ReplicatedStorage.Remotes:FindFirstChild("StoreFruit"):InvokeServer(unpack(args))
+        showNotification("Plow Hub | Auto Fruit", "Đã lưu " .. fruit.Name .. " vào kho!", 3)
         return true
     end
     return false
 end
 
--- 📌 Đổi server nếu không có trái
 local function switchServerAfterDelay(uiLabel)
-    print("⏳ Không có trái, chờ 7 giây trước khi đổi server...")
-    uiLabel.Text = "⏳ Không có trái! Chờ 7 giây..."
+    print("Không có trái, chờ 7 giây trước khi đổi server...")
+    uiLabel.Text = "Không có trái! Chờ 7 giây..."
     showNotification("Plow Hub | Auto Fruit", "Không có trái! Đang chờ 7 giây...", 7)
     wait(7) 
     TeleportService:Teleport(game.PlaceId, LocalPlayer)
 end
 
--- 📌 Tìm, nhặt và lưu trái vào kho
 local function checkAndStoreFruit(uiLabel)
     local fruit = findNearestFruit(uiLabel)
 
     if fruit then
-        showNotification("Plow Hub | Auto Fruit", "✅ Đang nhặt trái...", 3)
-        uiLabel.Text = "✅ Đang nhặt trái..."
+        showNotification("Plow Hub | Auto Fruit", "Đang nhặt trái...", 3)
+        uiLabel.Text = "Đang nhặt trái..."
         
         flyToPosition(fruit.Handle.Position, 200)
-        wait(1) -- Đợi 1 giây để chắc chắn đến nơi
+        wait(1)
 
         local success = storeFruitInInventory(fruit)
         if success then
-            uiLabel.Text = "✅ Đã lưu trái vào kho!"
+            uiLabel.Text = "Đã lưu trái vào kho!"
         else
-            uiLabel.Text = "❌ Không thể lưu trái!"
+            uiLabel.Text = "Không thể lưu trái!"
         end
     else
         switchServerAfterDelay(uiLabel)
     end
 end
 
--- 📌 Bắt đầu script
 local function startScript()
     local uiLabel = createUI()
     checkAndStoreFruit(uiLabel)
