@@ -67,7 +67,7 @@ local function createUI()
     StatusLabel.Parent = Frame
     StatusLabel.Size = UDim2.new(1, 0, 0.7, 0)
     StatusLabel.Position = UDim2.new(0, 0, 0.3, 0)
-    StatusLabel.Text = "🔍 Đang kiểm tra trái ác quỷ..."
+    StatusLabel.Text = "Đang kiểm tra Sever..."
     StatusLabel.TextScaled = true
     StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     StatusLabel.BackgroundTransparency = 1
@@ -78,7 +78,7 @@ end
 -- 📌 Gửi thông báo khi khởi động script
 local function startupMessage(uiLabel)
     uiLabel.Text = "🔍 Đang kiểm tra trái ác quỷ..."
-    showNotification("Plow Hub | Auto Fruit", "🚀 Đang tìm trái ác quỷ...", 5)
+    showNotification("Plow Hub | Auto Fruit", "🚀 Đang tìm fruit...", 5)
 end
 
 -- 📌 Tìm trái ác quỷ gần nhất và cập nhật UI
