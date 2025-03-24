@@ -6,6 +6,16 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
+-- 📌 Tự động chọn Hải Tặc khi vào game
+local function autoSelectPirate()
+    if ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_") then
+        ReplicatedStorage.Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
+        print("✅ Đã tự động chọn Hải Tặc!")
+    else
+        print("❌ Không thể chọn team, có thể đã chọn trước đó.")
+    end
+end
+
 -- 📌 Tắt va chạm để có thể bay xuyên tường
 local function disableCollision()
     for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
@@ -108,8 +118,22 @@ local function storeFruit()
     return false
 end
 
+-- 📌 Kiểm tra nếu không có trái nào trong 5 giây => Đổi server
+local function checkAndSwitchServer()
+    wait(5) -- Chờ 5 giây
+    local fruit = findNearestFruit()
+    if not fruit then
+        print("❌ Không tìm thấy trái nào trong 5 giây! Đang đổi server...")
+        teleportToSingaporeServer()
+    else
+        print("✅ Đã tìm thấy trái! Tiếp tục thu thập...")
+    end
+end
+
 -- 📌 Chạy script
 local function startScript()
+    autoSelectPirate() -- Tự động chọn Hải Tặc khi vào game
+
     local fruit = findNearestFruit()
     if fruit then
         flyToFruit(fruit)
@@ -117,8 +141,8 @@ local function startScript()
             teleportToSingaporeServer() -- Đổi server sau khi lưu Fruit thành công
         end
     else
-        print("❌ Không tìm thấy trái! Đổi server Singapore ngay...")
-        teleportToSingaporeServer()
+        print("⏳ Đợi 5 giây xem có trái nào không...")
+        checkAndSwitchServer()
     end
 end
 
