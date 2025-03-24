@@ -4,19 +4,28 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- Tự động chọn Hải Tặc nếu chưa có team
+local function selectPirateTeam()
+    if game:GetService("Players").LocalPlayer.Team == nil then
+        local remote = ReplicatedStorage:FindFirstChild("Remotes")
+        if remote and remote:FindFirstChild("TeamSelect") then
+            remote.TeamSelect:InvokeServer("Pirates")
+            wait(2)
+        end
+    end
+end
+
+selectPirateTeam() -- Chạy chọn team ngay khi load game
 
 -- Tạo UI thông báo
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local Frame = Instance.new("Frame", ScreenGui)
 local Title = Instance.new("TextLabel", Frame)
-local SubTitle = Instance.new("TextLabel", Frame)
 local Logo = Instance.new("ImageLabel", Frame)
-local StatusLabel = Instance.new("TextLabel", Frame)
 
 ScreenGui.Name = "PlowGameUI"
-Frame.Size = UDim2.new(0, 350, 0, 100)
+Frame.Size = UDim2.new(0, 350, 0, 50)
 Frame.Position = UDim2.new(0.5, -175, 0.05, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BorderSizePixel = 2
@@ -31,33 +40,11 @@ Title.TextColor3 = Color3.fromRGB(180, 100, 255) -- Màu tím nhạt
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.SourceSansBold
 
--- Trạng thái Fruit
-SubTitle.Size = UDim2.new(1, 0, 0, 20)
-SubTitle.Position = UDim2.new(0, 0, 0, 35)
-SubTitle.Text = "Trạng thái: Đang kiểm tra..."
-SubTitle.TextScaled = true
-SubTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-SubTitle.BackgroundTransparency = 1
-SubTitle.Font = Enum.Font.SourceSans
-
 -- Logo PG
 Logo.Size = UDim2.new(0, 40, 0, 40)
 Logo.Position = UDim2.new(0, 5, 0, 5)
 Logo.Image = "rbxassetid://100439996681560" -- Thay bằng ID ảnh logo PG
 Logo.BackgroundTransparency = 1
-
--- Hiển thị trạng thái thông báo
-local function updateUI(text)
-    SubTitle.Text = "Trạng thái: " .. text
-end
-
--- Kiểm tra RemoteEvents và mở quyền truy cập
-if ReplicatedStorage:FindFirstChild("Remotes") then
-    local event = ReplicatedStorage.Remotes:FindFirstChild("CheckStats")
-    if event then
-        event:InvokeServer()
-    end
-end
 
 local function findNearestFruit()
     for _, fruit in pairs(Workspace:GetChildren()) do
@@ -70,16 +57,8 @@ end
 
 local function teleportToFruit(fruit)
     if fruit and fruit:FindFirstChild("Handle") then
-        updateUI("Đang bay tới " .. fruit.Name .. "...")
-        
-        -- Bay xuyên vật thể
-        Character.HumanoidRootPart.CFrame = fruit.Handle.CFrame
+        LocalPlayer.Character.HumanoidRootPart.CFrame = fruit.Handle.CFrame
         wait(1)
-        
-        -- Kiểm tra nếu đã đến nơi
-        if (HumanoidRootPart.Position - fruit.Handle.Position).magnitude < 5 then
-            updateUI("Đã nhặt " .. fruit.Name .. "!")
-        end
     end
 end
 
@@ -101,17 +80,12 @@ local function storeFruitInInventory(fruit)
 
             if successCall then
                 success = true
-                updateUI("Đã lưu " .. fruit.Name .. " vào kho!")
                 break
             else
                 attempt = attempt + 1
                 warn("[StoreFruit]: Thử lần " .. attempt .. " thất bại! Đang thử lại...")
                 wait(1)
             end
-        end
-        
-        if not success then
-            updateUI("Không thể lưu trái!")
         end
 
         return success
@@ -120,10 +94,7 @@ local function storeFruitInInventory(fruit)
 end
 
 local function switchServer()
-    for i = 7, 1, -1 do
-        updateUI("Không có trái! Đổi server sau " .. i .. " giây...")
-        wait(1)
-    end
+    wait(5) -- Giờ đổi server sau 5 giây thay vì 7 giây
     TeleportService:Teleport(game.PlaceId, LocalPlayer)
 end
 
@@ -133,12 +104,7 @@ local function checkAndPickFruit()
     if fruit then
         teleportToFruit(fruit)
         wait(1)
-        local success = storeFruitInInventory(fruit)
-        if success then
-            updateUI("Đã lưu trái vào kho!")
-        else
-            updateUI("Không thể lưu trái!")
-        end
+        storeFruitInInventory(fruit)
     else
         switchServer()
     end
