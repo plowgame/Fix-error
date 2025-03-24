@@ -33,7 +33,7 @@ local function createUI()
 
     TitleLabel.Parent = Frame
     TitleLabel.Size = UDim2.new(1, 0, 0.3, 0)
-    TitleLabel.Text = "Plow Hub"
+    TitleLabel.Text = "🔹Plow Hub🔹"
     TitleLabel.TextScaled = true
     TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
     TitleLabel.BackgroundTransparency = 1
