@@ -2,17 +2,11 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Plow Hub - Blox Fruits",
-    SubTitle = "",
+    SubTitle = "V1.1",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = true,
-    Theme = "Custom",
-    CustomTheme = {
-        Main = Color3.fromRGB(138, 43, 226), -- Màu tím ánh kim
-        Background = Color3.fromRGB(50, 50, 50),
-        Accent = Color3.fromRGB(230, 190, 255),
-        Text = Color3.fromRGB(255, 255, 255)
-    },
+    Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
@@ -199,5 +193,10 @@ function startAutoFarm()
     end
 end
 
+Window.Tabs.Main:Show()
 
-Window:SelectTab(MainTab)
+Fluent:Notify({
+    Title = "Plow Hub",
+    Content = "Script đã load thành công!",
+    Duration = 8
+})
