@@ -198,3 +198,6 @@ function startAutoFarm()
         wait(1)
     end
 end
+
+
+Window:SelectTab(MainTab)
