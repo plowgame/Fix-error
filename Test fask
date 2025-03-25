@@ -1,6 +1,25 @@
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
--- Danh sách quái theo level
+local Window = Fluent:CreateWindow({
+    Title = "Plow Hub - Blox Fruits",
+    SubTitle = "",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Custom",
+    CustomTheme = {
+        Main = Color3.fromRGB(138, 43, 226), -- Màu tím ánh kim
+        Background = Color3.fromRGB(50, 50, 50),
+        Accent = Color3.fromRGB(230, 190, 255),
+        Text = Color3.fromRGB(255, 255, 255)
+    },
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "swords" })
+}
+
 local mobsByLevel = {
     {level = 1, name = "Bandit", id = 1, position = Vector3.new(100, 10, 200)},
     {level = 10, name = "Monkey", id = 2, position = Vector3.new(150, 10, 300)},
@@ -35,7 +54,6 @@ local mobsByLevel = {
     {level = 2600, name = "Beast Guardian", id = 51, position = Vector3.new(1600, 10, 3200)}
 }
 
--- Danh sách boss theo level
 local bossesByLevel = {
     {level = 200, name = "Saber Expert", id = 1, position = Vector3.new(300, 40, -500)},
     {level = 350, name = "Shanks (Boss)", id = 2, position = Vector3.new(-1500, 80, 300)},
@@ -54,25 +72,129 @@ local bossesByLevel = {
     {level = 2600, name = "Soul Reaper", id = 15, position = Vector3.new(11000, 50, -9000)}
 }
 
--- Tạo UI
-local Window = Fluent:CreateWindow({
-    Title = "Plow Hub - Blox Fruits",
-    SubTitle = "",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Acrylic = true,
-    Theme = "Custom",
-    CustomTheme = {
-        Main = Color3.fromRGB(138, 43, 226), -- Màu tím ánh kim
-        Background = Color3.fromRGB(50, 50, 50),
-        Accent = Color3.fromRGB(230, 190, 255),
-        Text = Color3.fromRGB(255, 255, 255)
-    },
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
-
-local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "swords" })
+local quests = {
+    -- Sea 1
+    [1] = {npc = "Bandit Quest Giver", level = 1, enemies = {"Bandits"}, location = "Starter Island"},
+    [15] = {npc = "Adventurer", level = 15, enemies = {"Monkeys", "Gorillas", "Gorilla King"}, location = "Jungle"},
+    [30] = {npc = "Rich Man", level = 30, enemies = {"Pirates", "Brutes", "Bobby"}, location = "Pirate Village"},
+    [60] = {npc = "Desert Adventurer", level = 60, enemies = {"Desert Bandits", "Desert Officers"}, location = "Desert"},
+    [90] = {npc = "Frozen Adventurer", level = 90, enemies = {"Snow Bandits", "Snowmen", "Yeti"}, location = "Frozen Village"},
+    [120] = {npc = "Marine Recruiter", level = 120, enemies = {"Chief Petty Officers", "Vice Admiral"}, location = "Marine Fortress"},
+    [150] = {npc = "Sky Adventurer", level = 150, enemies = {"Sky Bandits", "Dark Masters"}, location = "Skylands"},
+    [190] = {npc = "Head Jailer", level = 190, enemies = {"Warden", "Chief Warden", "Swan"}, location = "Prison"},
+    [225] = {npc = "Gladiator", level = 225, enemies = {"Toga Warriors", "Gladiators"}, location = "Colosseum"},
+    [300] = {npc = "Magma Adventurer", level = 300, enemies = {"Military Soldiers", "Military Spies", "Magma Admiral"}, location = "Magma Village"},
+    [375] = {npc = "Fishman Adventurer", level = 375, enemies = {"Fishman Warriors", "Fishman Commandos", "Fishman Lord"}, location = "Underwater City"},
+    [625] = {npc = "Water Adventurer", level = 625, enemies = {"Galley Pirates", "Galley Captains", "Cyborg"}, location = "Fountain City"},
+    
+    -- Sea 2
+    [700] = {npc = "King Red Head", level = 700, enemies = {"Raiders", "Mercenaries", "Diamond"}, location = "Kingdom of Rose"},
+    [850] = {npc = "Jeremy", level = 850, enemies = {"Swan Pirates", "Jeremy"}, location = "Green Zone"},
+    [1000] = {npc = "Fajita", level = 1000, enemies = {"Marine Captains", "Marine Lieutenants", "Fajita"}, location = "Cafe"},
+    
+    -- Sea 3
+    [1500] = {npc = "Dragon Adventurer", level = 1500, enemies = {"Dragon Crew Warrior", "Dragon Crew Archer"}, location = "Hydra Island"},
+    [1675] = {npc = "Captain Elephant", level = 1675, enemies = {"Musketeer Pirates", "Captain Elephant"}, location = "Great Tree"},
+    [1800] = {npc = "Beautiful Pirate", level = 1800, enemies = {"Reborn Skeletons", "Beautiful Pirate"}, location = "Haunted Castle"},
+    [2000] = {npc = "Pride Leader", level = 2000, enemies = {"Kitsune Samurai", "Pride Leader"}, location = "Floating Turtle"},
+    [2250] = {npc = "Soul Reaper", level = 2250, enemies = {"Reaper Spirit", "Soul Reaper"}, location = "Cursed Ship"},
+    [2450] = {npc = "God Human Trainer", level = 2450, enemies = {"Eternal Guardians", "God Human Trainer"}, location = "Sea of Treats"},
+    [2600] = {npc = "Final Boss", level = 2600, enemies = {"Elite Pirates", "Final Boss"}, location = "New World"},
 }
 
--- Các chức năng khác của script...
+return quests
+
+local selectedWeapon = "Melee" -- Mặc định là Melee
+
+Tabs.Main:AddDropdown("Weapon Selection", {
+    Title = "Chọn Vũ Khí",
+    Values = {"Melee", "Sword", "Gun"},
+    Multi = false,
+    Default = 1
+}, function(value)
+    selectedWeapon = value
+end)
+
+local function equipWeapon()
+    local backpack = game.Players.LocalPlayer.Backpack
+    for _, item in pairs(backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            if selectedWeapon == "Melee" and item.ToolTip == "Melee" then
+                game.Players.LocalPlayer.Character.Humanoid:EquipTool(item)
+                break
+            elseif selectedWeapon == "Sword" and item.ToolTip == "Sword" then
+                game.Players.LocalPlayer.Character.Humanoid:EquipTool(item)
+                break
+            elseif selectedWeapon == "Gun" and item.ToolTip == "Gun" then
+                game.Players.LocalPlayer.Character.Humanoid:EquipTool(item)
+                break
+            end
+        end
+    end
+end
+
+local autoFarmEnabled = false
+
+Tabs.Main:AddToggle("Auto Farm Level", {Title = "Auto Farm Level", Default = false}, function(value)
+    autoFarmEnabled = value
+    if autoFarmEnabled then
+        equipWeapon()
+        startAutoFarm()
+    end
+end)
+
+local function smoothMove(targetPos)
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        character.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
+    end
+end
+
+local function getQuestNPC(level)
+    for _, quest in pairs(quests) do
+        if level >= quest.level then
+            return quest.npc, quest.position, quest.enemies
+        end
+    end
+    return nil, nil, nil
+end
+
+local function acceptQuest(npcName)
+    local npc = workspace:FindFirstChild(npcName)
+    if npc then
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = npc.HumanoidRootPart.CFrame
+        wait(2)
+        game.ReplicatedStorage.Remotes.Quest.Accept:FireServer(npcName)
+    end
+end
+
+local function farmMobs(mobList)
+    for _, mob in pairs(mobsByLevel) do
+        if table.find(mobList, mob.name) then
+            smoothMove(mob.position + Vector3.new(0, 10, 0))
+            wait(1)
+            while autoFarmEnabled do
+                game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):Move(Vector3.new(0, 0, 0), true)
+                game.ReplicatedStorage.Remotes.Combat.Attack:FireServer()
+                wait(0.1)
+            end
+        end
+    end
+end
+
+function startAutoFarm()
+    while autoFarmEnabled do
+        local playerLevel = game.Players.LocalPlayer.Data.Level.Value
+        local questNPC, questPosition, targetMobs = getQuestNPC(playerLevel)
+
+        if questNPC and questPosition then
+            smoothMove(questPosition)
+            wait(3)
+            acceptQuest(questNPC)
+            wait(2)
+            farmMobs(targetMobs)
+        end
+        wait(1)
+    end
+end
