@@ -14,10 +14,18 @@ local Window = Fluent:CreateWindow({
 
 --Fluent provides Lucide Icons https://lucide.dev/icons/ for the tabs, icons are optional
 local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+    Main = Window:AddTab({ Title = "Pl Main", Icon = "" }),
+    Item = Window:AddTab({ Title = "Pl Item", Icon = "" }),
+    Raids = Window:AddTab({ Title = "Pl Raid", Icon = ""}),
+    Race = Window:AddTab({ Title = "Pl Race", Icon = ""}),
+    Shop = Window:AddTab({ Title = "Pl Shop", Icon = ""}),
+    Settings = Window:AddTab({ Title = "Pl Settings", Icon = "settings" })
 }
 
+-- Thông tin game Blox Fruits
+local gameInfo = loadstring(game:HttpGet("https://raw.githubusercontent.com/plowgame/thongtin/refs/heads/main/thongtinbloxfruit"))()
+local quests = gameInfo.quests
+local mobsByLevel = gameInfo.mobsByLevel
 local Options = Fluent.Options
 
 do
@@ -33,31 +41,6 @@ do
         Content = "By Home_40 \nDiscord: Plow Game | Community"
     })
 
-    Tabs.Main:AddButton({
-        Title = "Button",
-        Description = "Very important button",
-        Callback = function()
-            Window:Dialog({
-                Title = "Title",
-                Content = "This is a dialog",
-                Buttons = {
-                    {
-                        Title = "Confirm",
-                        Callback = function()
-                            print("Confirmed the dialog.")
-                        end
-                    },
-                    {
-                        Title = "Cancel",
-                        Callback = function()
-                            print("Cancelled the dialog.")
-                        end
-                    }
-                }
-            })
-        end
-    })
-
     local Toggle = Tabs.Main:AddToggle("MyToggle", {Title = "Toggle", Default = false })
     Toggle:OnChanged(function()
         print("Toggle changed:", Options.MyToggle.Value)
@@ -65,58 +48,6 @@ do
 
     Options.MyToggle:SetValue(false)
 
-    local Slider = Tabs.Main:AddSlider("Slider", {
-        Title = "Slider",
-        Description = "This is a slider",
-        Default = 2,
-        Min = 0,
-        Max = 5,
-        Rounding = 1,
-        Callback = function(Value)
-            print("Slider was changed:", Value)
-        end
-    })
-
-    Slider:OnChanged(function(Value)
-        print("Slider changed:", Value)
-    end)
-
-    Slider:SetValue(3)
-
-    local Dropdown = Tabs.Main:AddDropdown("Dropdown", {
-        Title = "Dropdown",
-        Values = {"one", "two", "three",},
-        Multi = false,
-        Default = 1,
-    })
-
-    Dropdown:SetValue("four")
-
-    Dropdown:OnChanged(function(Value)
-        print("Dropdown changed:", Value)
-    end)
-
-    local MultiDropdown = Tabs.Main:AddDropdown("MultiDropdown", {
-        Title = "Dropdown",
-        Description = "You can select multiple values.",
-        Values = {"one", "two", "three"},
-        Multi = true,
-        Default = {"seven", "twelve"},
-    })
-
-    MultiDropdown:SetValue({
-        one = true,
-        two = true,
-        three = false
-    })
-
-    MultiDropdown:OnChanged(function(Value)
-        local Values = {}
-        for Value, State in next, Value do
-            table.insert(Values, Value)
-        end
-        print("Mutlidropdown changed:", table.concat(Values, ", "))
-    end)
 
     -- Ẩn Colorpicker
     local Colorpicker = Tabs.Main:AddColorpicker("Colorpicker", {
