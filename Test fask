@@ -49,7 +49,6 @@ end
 
 local autoFarmEnabled = false
 
-task.wait(1) -- Chờ Fluent UI tải xong
 Tabs.Main:AddToggle("Auto Farm Level", {Title = "Auto Farm Level", Default = false}, function(value)
     autoFarmEnabled = value
     if autoFarmEnabled then
@@ -57,12 +56,6 @@ Tabs.Main:AddToggle("Auto Farm Level", {Title = "Auto Farm Level", Default = fal
         startAutoFarm()
     end
 end)
-
-
-print("Các phần tử trong tab Main:")
-for _, element in pairs(Tabs.Main.Elements or {}) do
-    print(element)
-end
 
 local TweenService = game:GetService("TweenService")
 
