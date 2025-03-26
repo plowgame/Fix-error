@@ -36,17 +36,25 @@ Tabs.Main:AddDropdown("Weapon Selection", {
 end)
 
 local function equipWeapon()
-    local backpack = game.true
+    local backpack = game.Players.LocalPlayer.Backpack
+    local character = game.Players.LocalPlayer.Character
+
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and tool.Name == selectedWeapon then
+            character.Humanoid:EquipTool(tool)
+            return
+        end
+    end
+end
+
+local autoFarmEnabled = false
 
 Tabs.Main:AddToggle("Auto Farm Level", {Title = "Auto Farm Level", Default = false}, function(value)
     autoFarmEnabled = value
     if autoFarmEnabled then
         equipWeapon()
         startAutoFarm()
-    end
-end)
-
-local TweenService = game:GetService("TweenService")
+        local TweenService = game:GetService("TweenService")
 
 local function smoothMove(targetPos)
     local player = game.Players.LocalPlayer
@@ -119,6 +127,8 @@ function startAutoFarm()
         task.wait(1) -- Tránh lag game
     end
 end
+    end
+end)
 
 
 Window:SelectTab(1)
