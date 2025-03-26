@@ -2,7 +2,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Plow Hub - Blox Fruits",
-    SubTitle = "V1.1",
+    SubTitle = "V1.2",
     TabWidth = 155,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = true,
@@ -49,6 +49,7 @@ end
 
 local autoFarmEnabled = false
 
+task.wait(1) -- Chờ Fluent UI tải xong
 Tabs.Main:AddToggle("Auto Farm Level", {Title = "Auto Farm Level", Default = false}, function(value)
     autoFarmEnabled = value
     if autoFarmEnabled then
@@ -56,6 +57,12 @@ Tabs.Main:AddToggle("Auto Farm Level", {Title = "Auto Farm Level", Default = fal
         startAutoFarm()
     end
 end)
+
+
+print("Các phần tử trong tab Main:")
+for _, element in pairs(Tabs.Main.Elements or {}) do
+    print(element)
+end
 
 local TweenService = game:GetService("TweenService")
 
