@@ -12,21 +12,21 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl -- Used when theres no MinimizeKeybind
 })
 
---Fluent provides Lucide Icons https://lucide.dev/icons/ for the tabs, icons are optional
-local Tabs = {
-    Main = Window:AddTab({ Title = "Pl Main", Icon = "" }),
-    Item = Window:AddTab({ Title = "Pl Item", Icon = "" }),
-    Raids = Window:AddTab({ Title = "Pl Raid", Icon = ""}),
-    Race = Window:AddTab({ Title = "Pl Race", Icon = ""}),
-    Shop = Window:AddTab({ Title = "Pl Shop", Icon = ""}),
-    Settings = Window:AddTab({ Title = "Pl Settings", Icon = "settings" })
-}
-
 -- Thông tin game Blox Fruits
 local gameInfo = loadstring(game:HttpGet("https://raw.githubusercontent.com/plowgame/thongtin/refs/heads/main/thongtinbloxfruit"))()
 local quests = gameInfo.quests
 local mobsByLevel = gameInfo.mobsByLevel
 local Options = Fluent.Options
+
+--Fluent provides Lucide Icons https://lucide.dev/icons/ for the tabs, icons are optional
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "" }),
+    Item = Window:AddTab({ Title = "Item", Icon = "" }),
+    Raids = Window:AddTab({ Title = "Raid", Icon = ""}),
+    Race = Window:AddTab({ Title = "Race", Icon = ""}),
+    Shop = Window:AddTab({ Title = "Shop", Icon = ""}),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "" })
+}
 
 do
     Fluent:Notify({
